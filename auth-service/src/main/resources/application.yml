@@ -1,0 +1,45 @@
+server:
+  port: 50003
+  shutdown: graceful
+
+spring:
+  application:
+    name: auth-service
+  boot:
+    version: 4.0.3
+
+  # ── Seguridad ──────────────────────────────────────────────────────────────
+  # auth-service NO importa desde Config Server (evita circular dependency:
+  # Config Server requiere Eureka).
+  # Toda la configuración está aquí o en variables de entorno.
+
+# ── JWT RS256 ───────────────────────────────────────────────────────────────
+# Configuración del emisor de tokens JWT.
+# Las claves RSA se generan en memoria al arrancar (JwkConfig).
+# Para producción: persistir keypair en un KeyStore o secrets manager.
+auth:
+  jwt:
+    # Valor del claim "iss" en los tokens emitidos.
+    # Los Resource Servers deben configurar issuer-uri igual a este valor
+    # para que la validación de issuer sea exitosa.
+    issuer: http://localhost:50003
+
+    # Tiempo de vida del accessToken en segundos (5 minutos)
+    access-token-ttl: 300
+
+    # Tiempo de vida del refreshToken en segundos (24 horas)
+    refresh-token-ttl: 86400
+
+# ── Actuator ───────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+
+logging.level:
+  org.springframework.security: INFO

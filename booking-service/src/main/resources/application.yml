@@ -1,0 +1,108 @@
+server:
+  port: 51200
+  servlet:
+    context-path: /api/v1      # Swagger: http://localhost:51200/api/v1/swagger-ui.html
+
+spring:
+  application:
+    name: booking-service
+  datasource:
+    url: ${DATASOURCE_URL_BOOKING:jdbc:postgresql://localhost:5432/bookingdb}
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin123}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none            # Flyway es dueño del esquema
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # auth-service NO publica /.well-known/openid-configuration, por eso las llaves
+          # se descargan de jwk-set-uri; issuer-uri solo se usa para validar el claim "iss".
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:50003/oauth2/jwks}
+          # issuer-uri NO se consulta por red: solo se compara con el claim "iss" (que auth-service emite como localhost:50003)
+          issuer-uri: ${AUTH_ISSUER_URI:http://localhost:50003}
+  # ── EXTRA 2: Kafka ─────────────────────────────────────────────────────────
+  # Si Kafka no está levantado el servicio arranca igual y la reserva funciona (el evento se omite y se loguea).
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        max.block.ms: 2000          # no bloquear la petición HTTP si Kafka está caído
+        delivery.timeout.ms: 4000
+        request.timeout.ms: 2000
+        linger.ms: 0
+  cloud:
+    discovery:
+      client:
+        simple:
+          # Descubrimiento estático para el RestClient @LoadBalanced (sin Eureka).
+          # Con Eureka (extra opcional) se elimina este bloque y se registra el servicio.
+          instances:
+            movie-service:
+              - uri: ${MOVIE_SERVICE_URI:http://localhost:51100}
+
+cinema:
+  kafka:
+    bookings-topic: cinema.bookings
+
+# Nombre lógico del servicio: lo resuelve Spring Cloud LoadBalancer -> MOVIE_SERVICE_URI
+# (IDE: http://localhost:51100 | Docker: http://movie-service:51100)
+movie-service:
+  url: http://movie-service/api/v1
+  connect-timeout: 2s
+  read-timeout: 5s
+
+# ── Resiliencia ─────────────────────────────────────────────────────────────
+# @Retry(name = "reserveSeat") en MovieServiceClientAdapter#reserveSeat
+# max-attempts = 3 llamadas en total (1 inicial + 2 reintentos), 500 ms entre intentos.
+# Solo se reintentan fallos transitorios; un 422 (sin asientos) NO se reintenta.
+resilience4j:
+  retry:
+    instances:
+      reserveSeat:
+        max-attempts: 3
+        wait-duration: 500ms
+        retry-exceptions:
+          - com.cinema.booking_service.exception.MovieServiceUnavailableException
+
+  # ── EXTRA 1: Circuit Breaker ────────────────────────────────────────────────
+  # Protege TODAS las llamadas a movie-service (consultar, reservar, liberar).
+  # Se abre cuando >= 50 % de las últimas 10 llamadas fallan (mínimo 5). Abierto: responde al instante
+  # con el fallback (503) durante 10 s; luego pasa a HALF_OPEN y deja pasar 3 llamadas de prueba.
+  # Solo cuentan como fallo los errores de disponibilidad: un 422 (sin asientos) NO abre el circuito.
+  circuitbreaker:
+    instances:
+      movieService:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - com.cinema.booking_service.exception.MovieServiceUnavailableException
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+springdoc:
+  swagger-ui:
+    operations-sorter: method

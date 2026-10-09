@@ -1,0 +1,157 @@
+services:
+
+  postgres-ms:
+    image: postgres:16.4-alpine
+    container_name: postgres-ms
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-admin} -d postgres"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Extra opcional: Kafka (misma imagen y listeners que la infraestructura del curso, modo KRaft)
+  #   Desde tu PC (microservicios): localhost:29092   |   Entre contenedores (Kafka UI): kafka:9092
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: kafka
+    restart: unless-stopped
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Interfaz web de Kafka: http://localhost:9000
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    restart: unless-stopped
+    ports:
+      - "9000:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: cinema
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ───────────────────────── MICROSERVICIOS (imagen compilada con Dockerfile multi-etapa) ─────────────────────────
+  # Dentro de Docker "localhost" es el propio contenedor: los servicios se hablan por NOMBRE (auth-service, kafka, ...).
+  # Orden de arranque: postgres + kafka -> auth-service -> movie-service -> booking-service
+
+  auth-service:
+    build:
+      context: ../auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    restart: unless-stopped
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx384m -XX:MaxMetaspaceSize=128m"
+    ports:
+      - "50003:50003"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:50003/actuator/health | grep -q UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  movie-service:
+    build:
+      context: ../movie-service
+      dockerfile: Dockerfile
+    container_name: movie-service
+    restart: unless-stopped
+    environment:
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:MaxMetaspaceSize=128m"
+      DATASOURCE_URL_MOVIE: ${DATASOURCE_URL_MOVIE:-jdbc:postgresql://postgres-ms:5432/moviedb}
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      AUTH_JWKS_URI: http://auth-service:50003/oauth2/jwks
+    ports:
+      - "51100:51100"
+    depends_on:
+      postgres-ms:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:51100/api/v1/actuator/health | grep -q UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  booking-service:
+    build:
+      context: ../booking-service
+      dockerfile: Dockerfile
+    container_name: booking-service
+    restart: unless-stopped
+    environment:
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:MaxMetaspaceSize=128m"
+      DATASOURCE_URL_BOOKING: ${DATASOURCE_URL_BOOKING:-jdbc:postgresql://postgres-ms:5432/bookingdb}
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      AUTH_JWKS_URI: http://auth-service:50003/oauth2/jwks
+      MOVIE_SERVICE_URI: http://movie-service:51100
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "51200:51200"
+    depends_on:
+      postgres-ms:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      movie-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:51200/api/v1/actuator/health | grep -q UP || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  postgres-data:
+  kafka-data:

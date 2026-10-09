@@ -1,0 +1,506 @@
+{
+  "info": {
+    "_postman_id": "8de5fbb3-3f19-450a-9d6e-d30e0e37bc6d",
+    "name": "Cine Reserva",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (user)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('TOKEN', j.access_token);",
+                  "pm.collectionVariables.set('REFRESH_TOKEN', j.refresh_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"user\",\n    \"password\": \"user123\"\n}"
+            },
+            "url": {
+              "raw": "{{AUTH_URL}}/login",
+              "host": [
+                "{{AUTH_URL}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('TOKEN', j.access_token);",
+                  "pm.collectionVariables.set('REFRESH_TOKEN', j.refresh_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{AUTH_URL}}/login",
+              "host": [
+                "{{AUTH_URL}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Movie Service",
+      "item": [
+        {
+          "name": "Movies",
+          "item": [
+            {
+              "name": "Create Movie",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Kung Fu Panda\",\n    \"director\": \"Mark Osborne\",\n    \"genre\": \"ANIMATION\",\n    \"durationMin\": 92,\n    \"rating\": \"PG\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{MOVIE_URL}}/movies",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "movies"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Guarda la película NUEVA en NEW_MOVIE_ID: MOVIE_ID (Toy Story) queda intacta para Create Screening",
+                      "if (pm.response.code === 201) pm.collectionVariables.set('NEW_MOVIE_ID', pm.response.json().id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get All Movies",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{MOVIE_URL}}/movies",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "movies"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Get Movie By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{MOVIE_URL}}/movies/{{NEW_MOVIE_ID}}",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{NEW_MOVIE_ID}}"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Update Movie",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Toy Story (Edición Especial)\",\n    \"director\": \"John Lasseter\",\n    \"genre\": \"ANIMATION\",\n    \"durationMin\": 81,\n    \"rating\": \"G\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{MOVIE_URL}}/movies/{{NEW_MOVIE_ID}}",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{NEW_MOVIE_ID}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Activate Movie",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{MOVIE_URL}}/movies/{{NEW_MOVIE_ID}}/activate",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{NEW_MOVIE_ID}}",
+                    "activate"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Deactivate Movie",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{MOVIE_URL}}/movies/{{NEW_MOVIE_ID}}/deactivate",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{NEW_MOVIE_ID}}",
+                    "deactivate"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Delete Movie",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{MOVIE_URL}}/movies/{{NEW_MOVIE_ID}}",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "movies",
+                    "{{NEW_MOVIE_ID}}"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Screenings",
+          "item": [
+            {
+              "name": "Create Screening",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"movieId\": \"{{MOVIE_ID}}\",\n    \"room\": \"Sala Mágica\",\n    \"showAt\": \"2026-11-20T16:00:00\",\n    \"totalSeats\": 30\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{MOVIE_URL}}/screenings",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "screenings"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get All Screenings",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{MOVIE_URL}}/screenings",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "screenings"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Get Screening By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{MOVIE_URL}}/screenings/{{SCREENING_ID}}",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "screenings",
+                    "{{SCREENING_ID}}"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Reserve Seat (Direct)",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{MOVIE_URL}}/screenings/{{SCREENING_ID}}/reserve",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "screenings",
+                    "{{SCREENING_ID}}",
+                    "reserve"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Release Seat (Direct)",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{MOVIE_URL}}/screenings/{{SCREENING_ID}}/release",
+                  "host": [
+                    "{{MOVIE_URL}}"
+                  ],
+                  "path": [
+                    "screenings",
+                    "{{SCREENING_ID}}",
+                    "release"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Booking Service (SAGA)",
+      "item": [
+        {
+          "name": "Create Booking (SAGA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) pm.collectionVariables.set('BOOKING_ID', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"screeningId\": \"{{SCREENING_ID}}\",\n    \"totalAmount\": 15.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BOOKING_URL}}/bookings",
+              "host": [
+                "{{BOOKING_URL}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Booking By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BOOKING_URL}}/bookings/{{BOOKING_ID}}",
+              "host": [
+                "{{BOOKING_URL}}"
+              ],
+              "path": [
+                "bookings",
+                "{{BOOKING_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Booking (Inverse SAGA)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{BOOKING_URL}}/bookings/{{BOOKING_ID}}/cancel",
+              "host": [
+                "{{BOOKING_URL}}"
+              ],
+              "path": [
+                "bookings",
+                "{{BOOKING_ID}}",
+                "cancel"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{TOKEN}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "AUTH_URL",
+      "value": "http://localhost:50003/api/v1/auth"
+    },
+    {
+      "key": "MOVIE_URL",
+      "value": "http://localhost:51100/api/v1"
+    },
+    {
+      "key": "BOOKING_URL",
+      "value": "http://localhost:51200/api/v1"
+    },
+    {
+      "key": "TOKEN",
+      "value": ""
+    },
+    {
+      "key": "MOVIE_ID",
+      "value": "d508494b-4b2a-431c-99d9-bb4fc27de754"
+    },
+    {
+      "key": "NEW_MOVIE_ID",
+      "value": ""
+    },
+    {
+      "key": "SCREENING_ID",
+      "value": "73d2a76f-005a-4b96-b072-cd414e5b22b6"
+    },
+    {
+      "key": "BOOKING_ID",
+      "value": ""
+    }
+  ]
+}

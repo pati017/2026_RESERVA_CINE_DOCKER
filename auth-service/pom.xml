@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.3</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.mitocode.ecommerce</groupId>
+    <artifactId>auth-service</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>auth-service</name>
+    <description>
+        Servicio de autenticación y autorización del e-commerce.
+        Módulo 12: JWT RS256 propio + GitHub OAuth2 + Keycloak.
+        Emite tokens JWT firmados con clave RSA privada.
+        Expone JWKS público para que los Resource Servers validen tokens localmente.
+    </description>
+
+    <properties>
+        <java.version>25</java.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- Spring MVC: expone los endpoints REST de autenticación -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Security: UserDetailsService, PasswordEncoder, SecurityFilterChain -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!--
+            OAuth2 Jose: JwtEncoder + JwtDecoder + JWKSource.
+            Proporciona:
+              - com.nimbusds.jose.jwk.RSAKey → construcción de claves RSA JWK
+              - NimbusJwtEncoder → firma JWT con clave RSA privada (RS256)
+              - NimbusJwtDecoder → verifica JWT con clave RSA pública
+            Versión gestionada por el BOM de Spring Boot 4.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+        </dependency>
+
+        <!--
+            OAuth2 Resource Server: soporta oauth2ResourceServer(jwt) en HttpSecurity.
+            Necesario para que /oauth2/jwks sea reconocido por Spring Security.
+            Versión gestionada por el BOM de Spring Boot 4.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!--
+            OAuth2 Client: OAuth2 login con GitHub (perfil 'github').
+            Proporciona OAuth2AuthorizationCodeGrantFilter + OAuth2LoginAuthenticationFilter.
+            Versión gestionada por el BOM de Spring Boot 4.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
+        <!-- Validation: @NotBlank en DTOs -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Actuator: /actuator/health para Docker healthcheck -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

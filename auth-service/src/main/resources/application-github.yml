@@ -1,0 +1,40 @@
+# ── Perfil github ───────────────────────────────────────────────────────────
+# Activar con: -Dspring.profiles.active=github
+#
+# Requiere registrar una GitHub OAuth App:
+#   https://github.com/settings/developers → OAuth Apps → New OAuth App
+#
+#   Application name:           Spring Boot Cloud (dev)
+#   Homepage URL:               http://localhost:50003
+#   Authorization callback URL: http://localhost:50003/login/oauth2/code/github
+#
+# Pasar credenciales vía variables de entorno:
+#   export GITHUB_CLIENT_ID=<tu-client-id>
+#   export GITHUB_CLIENT_SECRET=<tu-client-secret>
+#
+# O pasar como propiedades JVM al arrancar:
+#   mvn spring-boot:run -f auth-service/pom.xml \
+#     -Dspring.profiles.active=github \
+#     -DGITHUB_CLIENT_ID=<id> \
+#     -DGITHUB_CLIENT_SECRET=<secret>
+# ────────────────────────────────────────────────────────────────────────────
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            # Credenciales de tu GitHub OAuth App (NO hardcodear en código)
+            client-id: ${GITHUB_CLIENT_ID:Ov23liyUcnfHMesNtJQY}
+            client-secret: ${GITHUB_CLIENT_SECRET:bcac95bd0e94637ad16ea405cad38e8eb9ff3d4c}
+
+            # Scopes solicitados a GitHub:
+            #   read:user → perfil básico (login, name, avatar_url)
+            #   user:email → email aunque sea privado
+            scope: read:user, user:email
+
+            # redirect-uri por defecto Spring Boot:
+            # {baseUrl}/login/oauth2/code/{registrationId}
+            # → http://localhost:50003/login/oauth2/code/github
+            # Debe coincidir EXACTAMENTE con la Authorization callback URL registrada en GitHub

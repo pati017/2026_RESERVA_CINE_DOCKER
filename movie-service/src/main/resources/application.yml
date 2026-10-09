@@ -1,0 +1,45 @@
+server:
+  port: 51100
+  servlet:
+    context-path: /api/v1      # Swagger: http://localhost:51100/api/v1/swagger-ui.html
+
+spring:
+  application:
+    name: movie-service
+  datasource:
+    url: ${DATASOURCE_URL_MOVIE:jdbc:postgresql://localhost:5432/moviedb}
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin123}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none            # Flyway es dueño del esquema
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # auth-service NO publica /.well-known/openid-configuration, por eso las llaves
+          # se descargan de jwk-set-uri; issuer-uri solo se usa para validar el claim "iss".
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:50003/oauth2/jwks}
+          # issuer-uri NO se consulta por red: solo se compara con el claim "iss" (que auth-service emite como localhost:50003)
+          issuer-uri: ${AUTH_ISSUER_URI:http://localhost:50003}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+springdoc:
+  swagger-ui:
+    operations-sorter: method
